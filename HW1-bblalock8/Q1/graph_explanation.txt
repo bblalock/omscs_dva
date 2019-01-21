@@ -1,0 +1,1 @@
+I decided to use color to visually partition nodes into connected components. After experimenting with graph layouts, the ForceAtlas2 layout best visualized the components. To explain the spread of the giant component, I used betweenness centrality to size the nodes and only showed labels for the most central nodes.

@@ -40,7 +40,7 @@ def RateLimited(maxPerSecond):
     return decorate
 
 
-@RateLimited(3)
+@RateLimited(4)
 def request_tmdb_api(request):
     conn = http.client.HTTPSConnection("api.themoviedb.org")
 
@@ -99,11 +99,6 @@ def collect_n_popular_movies(n, api_key):
     return results
 
 
-def write_popular_movies_to_csv(n, api_key):
-    t_list = collect_n_popular_movies(n, api_key)
-    write_tuple_list_to_csv(t_list, 'movie_ID_name.csv')
-
-
 def request_n_similar_movies(n, movie_id, api_key):
     num_results_per_page = 20
     num_request = ceil_divide(n, num_results_per_page)
@@ -114,19 +109,31 @@ def request_n_similar_movies(n, movie_id, api_key):
             'https://api.themoviedb.org/3/movie/{}/similar?api_key={}&page={}'.format(movie_id, api_key, page))
         results = results + [data['results'][i]['id'] for i in range(0, len(data['results']))]
     results = [(movie_id, results[i]) for i in range(0, len(results)) if i < n]
-    print(results)
-    print(len(results))
+    return results
 
-    # 'https://api.themoviedb.org/3/movie/{}/similar?api_key={}&page={}'.format(movie_id, api_key, page)
+
+def write_popular_movies_to_csv(n, api_key):
+    popular_movie_t_list = collect_n_popular_movies(n, api_key)
+    popular_movie_ids = [tup[0] for tup in popular_movie_t_list]
+
+    sim_movie_t_list = []
+    for id in popular_movie_ids:
+        sim_movie_t_list = sim_movie_t_list + request_n_similar_movies(5, id, api_key)
+
+    sim_movie_t_list = [tup for tup in sim_movie_t_list
+                        if ((tup[0] < tup[1]) and (tup[1] in popular_movie_ids)) or (tup[1] not in popular_movie_ids)
+                        ]
+
+    write_tuple_list_to_csv(popular_movie_t_list, 'movie_ID_name.csv')
+    write_tuple_list_to_csv(sim_movie_t_list, 'movie_ID_sim_movie_ID.csv')
 
 
 def main(argv):
     start = time.time()
     api_key = retrieve_api_key(argv)
     write_popular_movies_to_csv(350, api_key)
-    # request_n_similar_movies(5, 424694, api_key)
     end = time.time()
-    print('script executed in ' + str((end - start)) + ' secs')
+    print('script executed in ' + str((end - start) / float(60)) + ' mins')
 
 
 if __name__ == "__main__":

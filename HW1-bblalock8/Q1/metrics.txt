@@ -1,0 +1,8 @@
+Average degree: 2.833
+The average number of connections per node; e.g. each movie is connected on average to approximately 3 other movies.
+
+Network diameter: 24
+The longest shortest path in the network; i.e. the scale of the network, specifically the breadth of its largest component, can be measured through the network’s diameter.
+
+Average path length: 7.558
+The average length of the shortest paths in the network; i.e. the connectivity of the network, or how connected two movies are on average, can be measured with average path length.
