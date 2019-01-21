@@ -1,0 +1,25 @@
+# Compiled python modules.
+*.pyc
+
+# Setuptools distribution folder.
+/dist/
+
+# Python egg metadata, regenerated from source files by setuptools.
+/*.egg-info
+
+*.DS_Store
+metastore_db
+
+# IPython Notebook
+.ipynb_checkpoints
+
+# Unit tests / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+.idea/
+nosetests.xml
+coverage.xml
+*,cover
