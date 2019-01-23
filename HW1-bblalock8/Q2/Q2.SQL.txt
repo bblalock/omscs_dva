@@ -12,9 +12,17 @@ DROP TABLE IF EXISTS movie_overview;
 -- (a.i) Create tables
 
 -- [insert your SQL statement(s) BELOW this line]
+CREATE TABLE movies(
+    id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    score INTEGER NOT NULL
+);
 
-
-
+CREATE TABLE movie_cast(
+    movie_id INTEGER NOT NULL,
+    cast_id INTEGER NOT NULL,
+    cast_name TEXT NOT NULL
+);
 
 -- [insert your SQL statement(s) ABOVE this line]
 
@@ -27,9 +35,8 @@ DROP TABLE IF EXISTS movie_overview;
 -- (a.ii) Import data
 
 -- [insert your SQLite command(s) BELOW this line]
-
-
-
+.import movie-name-score.txt movies
+.import movie-cast.txt movie_cast
 
 -- [insert your SQLite command(s) ABOVE this line]
 
@@ -45,9 +52,14 @@ SELECT COUNT(*) FROM movie_cast;
 -- (b) Create indexes
 
 -- [insert your SQL statement(s) BELOW this line]
+CREATE INDEX scores_index
+ON movies (score);
 
+CREATE INDEX cast_index
+ON movie_cast (cast_id);
 
-
+CREATE INDEX movie_index
+ON movies (id);
 
 -- [insert your SQL statement(s) ABOVE this line]
 
@@ -60,9 +72,9 @@ SELECT COUNT(*) FROM movie_cast;
 -- (c) Calculate a proportion
 
 -- [insert your SQL statement(s) BELOW this line]
-
-
-
+SELECT 100.0*count(*)/(SELECT count(*) FROM movies) as prop
+FROM movies
+WHERE score > 50;
 
 -- [insert your SQL statement(s) ABOVE this line]
 
@@ -74,9 +86,10 @@ SELECT COUNT(*) FROM movie_cast;
 -- (d) Find the highest scoring movies
 
 -- [insert your SQL statement(s) BELOW this line]
-
-
-
+SELECT id,name,score
+FROM movies
+ORDER BY score DESC, name
+LIMIT 7;
 
 -- [insert your SQL statement(s) ABOVE this line]
 
@@ -88,9 +101,11 @@ SELECT COUNT(*) FROM movie_cast;
 -- (e) Find the most prolific actors
 
 -- [insert your SQL statement(s) BELOW this line]
-
-
-
+SELECT cast_id, cast_name, count(distinct movie_id) as movie_count
+FROM movie_cast
+GROUP BY cast_id, cast_name
+ORDER BY movie_count DESC
+LIMIT 5;
 
 -- [insert your SQL statement(s) ABOVE this line]
 
@@ -102,9 +117,22 @@ SELECT COUNT(*) FROM movie_cast;
 -- (f) Get high scoring actors
 
 -- [insert your SQL statement(s) BELOW this line]
-
-
-
+SELECT cast_id, cast_name, avg(score) as average_score
+FROM movie_cast
+INNER JOIN (SELECT cast_id as id, count(distinct movie_id) as movie_count
+            FROM movie_cast
+            GROUP BY cast_id
+            ) as cast_movie_count
+    ON movie_cast.cast_id = cast_movie_count.id
+INNER JOIN (SELECT *
+            FROM movies
+            WHERE score >= 50
+            ) as movies
+    ON movie_cast.movie_id = movies.id
+WHERE movie_count > 2
+GROUP BY cast_id, cast_name
+ORDER BY average_score DESC, cast_name
+LIMIT 10;
 
 -- [insert your SQL statement(s) ABOVE this line]
 
@@ -116,9 +144,33 @@ SELECT COUNT(*) FROM movie_cast;
 -- (g) Creating views
 
 -- [insert your SQL statement(s) BELOW this line]
-
-
-
+CREATE VIEW good_collaboration AS
+SELECT *
+FROM (
+    SELECT cast_member_id1,
+           cast_member_id2,
+           count('*') as movie_count,
+           (sum(movie_score1) + sum(movie_score2))/count('*') as average_movie_score
+    FROM (SELECT cast_id as cast_member_id1,
+                 movie_id as movie_id1,
+                 score as movie_score1
+          FROM movie_cast
+          INNER JOIN (SELECT id, score FROM movies)
+          ON movie_id = id
+         ) as cast_score1
+    INNER JOIN
+        (SELECT cast_id as cast_member_id2,
+                 movie_id as movie_id2,
+                 score as movie_score2
+          FROM movie_cast
+          INNER JOIN (SELECT id, score FROM movies)
+          ON movie_id = id
+         ) as cast_score2
+    ON movie_id1 = movie_id2
+    WHERE cast_member_id1 < cast_member_id2
+    GROUP BY cast_member_id1, cast_member_id2
+    )
+WHERE average_movie_score >= 40 AND movie_count >= 3;
 
 -- [insert your SQL statement(s) ABOVE this line]
 
@@ -134,9 +186,27 @@ SELECT AVG(average_movie_score) FROM good_collaboration;
 -- (h) Find the best collaborators
 
 -- [insert your SQL statement(s) BELOW this line]
-
-
-
+SELECT movie_cast.cast_id,
+       cast_name,
+       collaboration_score
+FROM (SELECT DISTINCT cast_id, cast_name FROM movie_cast) as movie_cast
+INNER JOIN (SELECT cast_id, avg(average_movie_score) as collaboration_score
+            FROM
+            (SELECT DISTINCT *
+            FROM
+                (SELECT cast_member_id1 as cast_id, average_movie_score
+                 FROM good_collaboration
+                 UNION ALL
+                 SELECT cast_member_id2 as cast_id,
+                        average_movie_score
+                 FROM good_collaboration
+                )
+            )
+            GROUP BY cast_id
+           ) as collab_score
+ON collab_score.cast_id = movie_cast.cast_id
+ORDER BY collaboration_score DESC
+LIMIT 5;
 
 -- [insert your SQL statement(s) ABOVE this line]
 
@@ -148,9 +218,15 @@ SELECT AVG(average_movie_score) FROM good_collaboration;
 -- (i) Create FTS table and import data
 
 -- [insert your SQL statement(s) BELOW this line]
+CREATE VIRTUAL TABLE movie_overview USING fts3 (
+    id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    year INTEGER NOT NULL,
+    overview TEXT NOT NULL,
+    popularity DECIMAL NOT NULL
+);
 
-
-
+.import movie-overview.txt movie_overview
 
 -- [insert your SQL statement(s) ABOVE this line]
 
@@ -159,9 +235,9 @@ SELECT AVG(average_movie_score) FROM good_collaboration;
 -- (i.1) Count movies with "fight"
 
 -- [insert your SQL statement(s) BELOW this line]
-
-
-
+SELECT count(*) as count_overview
+FROM movie_overview
+WHERE overview MATCH 'fight';
 
 -- [insert your SQL statement(s) ABOVE this line]
 
@@ -173,9 +249,9 @@ SELECT AVG(average_movie_score) FROM good_collaboration;
 -- (i.2) List movies with "love" and "story" nearby
 
 -- [insert your SQL statement(s) BELOW this line]
-
-
-
+SELECT id
+FROM movie_overview
+WHERE overview MATCH 'love NEAR/5 story ';
 
 -- [insert your SQL statement(s) ABOVE this line]
 

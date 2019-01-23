@@ -112,7 +112,7 @@ def request_n_similar_movies(n, movie_id, api_key):
     return results
 
 
-def write_popular_movies_to_csv(n, api_key):
+def write_popular_and_similar_movies_to_csv(n, api_key):
     popular_movie_t_list = collect_n_popular_movies(n, api_key)
     popular_movie_ids = [tup[0] for tup in popular_movie_t_list]
 
@@ -131,7 +131,7 @@ def write_popular_movies_to_csv(n, api_key):
 def main(argv):
     start = time.time()
     api_key = retrieve_api_key(argv)
-    write_popular_movies_to_csv(350, api_key)
+    write_popular_and_similar_movies_to_csv(350, api_key)
     end = time.time()
     print('script executed in ' + str((end - start) / float(60)) + ' mins')
 
