@@ -1,0 +1,6 @@
+47
+5
+122
+if(isNull(value), "Unbranded", value)
+if(toNumber(value)>100, 1, 0)
+if(isNotNull(toLowercase(value).match(/.*(sale|discount|offer).*/)), 1, 0)

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>bblalock8</title>
+    <script type="text/javascript" src="d3/d3.v3.min.js"></script>
+    <style> .axis path,
+            .axis line {
+                fill: none;
+                stroke: black;
+                shape-rendering: crispEdges;
+            }
+
+            .axis text {
+                font-family: sans-serif;
+                font-size: 11px;
+            }
+    </style>
+</head>
+<body>
+<script type="text/javascript">
+        var w = 500;
+        var h = 300;
+        var padding = 30;
+
+        var dataset = [];
+        var numDataPoints = 100;
+
+        function randomInterval(min,max){return Math.floor(Math.random() * (max - min + 1)) + min}
+
+        for (var i = 0; i < numDataPoints; i++) {
+            var newNumber1 = randomInterval(10, 250);
+            var newNumber2 = randomInterval(10, 250);
+            dataset.push([newNumber1, newNumber2]);
+        }
+
+        var Scale = d3.scale.linear()
+                     .domain([10, 250])
+                     .range([1, 5]);
+
+        var xScale = d3.scale.linear()
+								 .domain([0, d3.max(dataset, function(d) { return d[0]; })])
+								 .range([padding, w - padding * 2]);
+
+        var yScale = d3.scale.linear()
+                             .domain([0, d3.max(dataset, function(d) { return d[1]; })])
+                             .range([h - padding, padding]);
+
+
+        function euclideanDistance(x1,x2,y1,y2){return Math.sqrt(Math.pow(Scale(x2) - Scale(x1),2) + Math.pow(Scale(y2) - Scale(y1),2))}
+
+        var xAxis = d3.svg.axis()
+                    .scale(xScale)
+                    .orient("bottom");
+
+        var yAxis = d3.svg.axis()
+                  .scale(yScale)
+                  .orient("left");
+
+        var svg = d3.select("body")
+                    .append("svg")
+                    .attr("width", w)
+                    .attr("height", h)
+
+        svg.selectAll("circle")
+            .data(dataset)
+            .enter()
+            .append("circle")
+            .attr("cx", function(d) {
+                return xScale(d[0]);
+            })
+            .attr("cy", function(d) {
+                return yScale(d[1]);
+            })
+            .attr("r", function(d){return euclideanDistance(d[0],0,0,d[1]);})
+            .attr("fill", "rgba(0,0,0,0)")
+            .attr("stroke", function (d){
+                                if (d[0] > d3.mean(dataset, function(d){return d[0];})){
+                                    return "rgba(0,0,255,1)";
+                                }
+                                else{
+                                    return "rgba(0,255,0,1)";
+                                }
+                            }
+                );
+
+       svg.selectAll("text")
+			   .data(dataset)
+			   .enter()
+			   .append("text")
+			   .text(function(d) {
+			        if (d[1] == d3.min(dataset, function(d){return d[1];})){
+			            return "Min Y: " + d[1];
+			        }
+			   })
+			   .attr("x", function(d) {
+			   		return xScale(d[0]);
+			   })
+			   .attr("y", function(d) {
+			   		return yScale(d[1]) - 5;
+			   })
+			   .attr("font-family", "sans-serif")
+			   .attr("font-size", "11px")
+			   .attr("fill", "black")
+			   .attr("text-anchor", "middle");
+
+       svg.append("text")
+           .text("bblalock8")
+           .attr("x", w/2)
+           .attr("y", padding)
+           .attr("font-family", "sans-serif")
+           .attr("font-size", "11px")
+           .attr("fill", "black")
+           .attr("text-anchor", "middle");
+
+       svg.append("g")
+            .attr("class", "axis")  //Assign "axis" class
+            .attr("transform", "translate(0," + (h - padding) + ")")
+            .call(xAxis);
+
+       svg.append("g")
+            .attr("class", "axis")
+            .attr("transform", "translate(" + padding + ",0)")
+            .call(yAxis);
+
+
+</script>
+</body>
+</html>
