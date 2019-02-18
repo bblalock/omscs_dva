@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="../lib/d3.v5.min.js"></script>
+<style>
+
+    .axis path,
+    .axis line {
+        fill: none;
+        stroke: black;
+        shape-rendering: crispEdges;
+    }
+
+    text {
+        font-family: sans-serif;
+    }
+
+    .axis text {
+        font-family: sans-serif;
+    }
+
+    .pagebreak { page-break-before: always; }
+
+</style>
+<body>
+</body>
+<script type="text/javascript">
+    var width = 1000,
+        height = 800
+    var padding = 70
+
+    dataset = d3.csv("movies.csv")
+                .then(function(data) {
+                  data.forEach(function(d){
+                          d.Budget = +d.Budget
+                          d.WinsNoms = +d.WinsNoms
+                          d.Votes = +d.Votes
+                      })
+
+                  // Part A
+                  scatterplot(data,
+                              'Rating', 'WinsNoms',
+                              'Rating', 'Wins+Noms',
+                              'Wins+Nominations vs. Rating',
+                              [50,50],
+                              d3.scaleLinear()
+                              )
+
+                  scatterplot(data,
+                              'Rating', 'Budget',
+                              'Rating', 'Budget',
+                              'Budget vs. Rating',
+                              [50,50],
+                              d3.scaleLinear()
+                              )
+
+                  // Part B
+                  scatterplot(data,
+                              'Rating', 'Votes',
+                              'Rating', 'Votes',
+                              'Votes vs. Rating sized by Wins+Nominations',
+                              [20,500],
+                              d3.scaleLinear()
+                              )
+
+                  //Part C
+                  scatterplot(data,
+                              'Rating', 'WinsNoms',
+                              'Rating', 'Wins+Noms',
+                              'Wins+Nominations (square-root-squared) vs. Rating',
+                              [50,50],
+                              d3.scaleSqrt()
+                              )
+
+                  scatterplot(data,
+                              'Rating', 'WinsNoms',
+                              'Rating', 'Wins+Noms',
+                              'Wins+Nominations (log-scaled) vs. Rating',
+                              [50,50],
+                              d3.scaleLog()
+                              )
+
+                })
+
+    scatterplot = function(dataset, xVar, yVar, xVarLabel, yVarLabel, title, scaleRange, yScale){
+        var xScale = d3.scaleLinear()
+                    .domain([0, d3.max(dataset, function(d) { return d[xVar]})])
+                    .range([padding, width - padding * 2])
+                    .clamp(true)
+
+        var yScale = yScale
+                     .domain([1e-6, d3.max(dataset, function(d) { return d[yVar]})])
+                     .range([height - padding, padding])
+                     .nice()
+                     .clamp(true)
+
+        var xAxis = d3.axisBottom(xScale)
+
+        var yAxis = d3.axisLeft(yScale)
+
+        var svg = d3.select("body")
+                    .append("svg")
+                    .attr("width", width)
+                    .attr("height", height)
+
+        var pointScale = d3.scaleLinear()
+                           .domain(d3.extent(dataset, (d) => { return d.WinsNoms; }))
+                           .range(scaleRange)
+
+        svg.append("g")
+           .selectAll("path")
+           .data(dataset)
+           .enter()
+           .append("path")
+           //.attr("d",function(data){ return symbol.type(d3.symbolCross); })
+           .attr("d", function(d){
+                            if (d.IsGoodRating == 0){
+                                return d3.symbol().size(pointScale(d.WinsNoms)).type(d3.symbolCircle)();
+                                }
+                            else{
+                                return d3.symbol().size(pointScale(d.WinsNoms)).type(d3.symbolCross)();
+                                }
+                        }
+                )
+           .attr('fill', 'rgba(0,0,0,0)')
+           .attr("transform",
+                    function(d) { return "translate(" + xScale(d[xVar]) + "," + yScale(d[yVar]) + ")" }
+                    )
+           .attr("stroke",
+                function(d){
+                    if(d.IsGoodRating == 1){
+                            return "blue"
+                       }
+                       else{
+                            return "red"
+                       }
+                   }
+                  )
+            .style("opacity", .7)
+
+        // Legend
+        var legendData = [["Good Rating", "blue", d3.symbolCross], ["Bad Rating", "red", d3.symbolCircle]];
+
+        var legend = svg.append('g')
+                    .attr("class", "legend")
+                    .attr("height", 0)
+                    .attr("width", 0)
+                    .attr('transform', 'translate(' + (width - padding*1.8) + ',' + (padding * .8) + ')');
+
+        var legendRect = legend
+                         .selectAll('g')
+                         .data(legendData);
+
+        var legendRectE = legendRect.enter()
+                                    .append("g")
+                                    .attr("transform", function(d, i){
+                                      return 'translate(0,' + (i*20) + ')';
+                                    });
+
+        legendRectE
+            .append('path')
+            .attr("d", d3.symbol().size([50]).type((d) => { return d[2] }))
+            .style("fill", "rgba(0,0,0,0)")
+            .style("stroke", function (d) {
+                return d[1];
+            });
+
+        legendRectE
+            .append("text")
+            .attr("x", 10)
+            .attr("y", 5)
+            .text(function (d) {
+                return d[0];
+            });
+
+        // Axis
+        svg.append("g")
+            .attr("class", "axis")  //Assign "axis" class
+            .attr("transform", "translate(0," + (height - padding) + ")")
+            .call(xAxis)
+            .append("text")
+            .text(xVarLabel)
+            .attr("x", width/2)
+            .attr("y", padding/2)
+            .attr("font-family", "sans-serif")
+            .attr("font-size", "12px")
+            .attr("fill", "black")
+            .attr("text-anchor", "middle")
+
+        svg.append("g")
+            .attr("class", "axis")
+            .attr("transform", "translate(" + padding + ",0)")
+            .call(yAxis)
+            .append("text")
+            .text(yVarLabel)
+            .attr("transform", function(d) {
+                return "rotate(-90)"
+                })
+            .attr("x", -padding*1.2)
+            .attr("y", padding/4)
+            .attr("font-family", "sans-serif")
+            .attr("font-size", "12px")
+            .attr("fill", "black")
+            .attr("text-anchor", "middle")
+
+        // Title
+        svg.append("text")
+           .text(title)
+           .attr("x", width/2)
+           .attr("y", padding/2)
+           .attr("font-family", "sans-serif")
+           .attr("font-size", "15px")
+           .attr("font-weight", "bold")
+           .attr("fill", "black")
+           .attr("text-anchor", "middle")
+
+       // PageBreak
+       d3.select("body").append("div").attr("class", "pagebreak")
+    }
+
+
+
+</script>
+</html>

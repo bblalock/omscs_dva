@@ -1,0 +1,2 @@
+The scatterplot for budget versus ratings has heavy class overlap. Wins and nominations versus rating has less overlap; e.g. there are almost no bad rating movies with more than forty wins and nominations. Therefore, wins and nominations versus rating is better at bifurcating good from bad movies 
+In the presence of heavily skewed data visualizing values on a logarithmic scale can be beneficial to compensate.  Furthermore, if we want to visualize percent change and multiplicative factors we could use different scales, including the square root scale.

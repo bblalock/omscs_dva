@@ -278,11 +278,8 @@ links.forEach(function(link) {
     link.target = nodes[link.target] || (nodes[link.target] = {name: link.target, inDegree: 0, outDegree: 0});
 });
 
-console.log(nodes)
-
 // node in and out degree
 links.forEach(function(link) {
-    // console.log(nodes[link.source.name].outDegree)
   nodes[link.source.name].outDegree += 1;
   nodes[link.target.name].inDegree += 1;
 });
@@ -416,7 +413,6 @@ function dblclicked(d){
         d.fx = d.x;
         d.fy = d.y;
     }
-    //console.log(d);
 }
 
 </script>

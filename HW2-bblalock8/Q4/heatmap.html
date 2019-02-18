@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="../lib/d3.v5.min.js"></script>
+<style>
+    rect.bordered {
+        stroke: #E6E6E6;
+        stroke-width:2px;
+      }
+
+    body {
+      font: 10px sans-serif;
+    }
+
+    .label {
+      font-weight: bold;
+      fill: black;
+      font-size: 12px;
+    }
+
+    .tile {
+      shape-rendering: crispEdges;
+    }
+
+    .axis path,
+    .axis line {
+      fill: none;
+      stroke: black;
+      shape-rendering: crispEdges;
+
+    }
+
+    .axis text {
+      font-family: sans-serif;
+      font-size: 11px;
+    }
+
+    .grid .tick {
+        stroke: lightgrey;
+        opacity: 0.2;
+    }
+    .grid path {
+          stroke-width: 0;
+    }
+
+</style>
+<body>
+</body>
+<script type="text/javascript">
+    var width = 750,
+        height = 750
+    var padding = 100
+
+    // Selector
+    var yr_data = [2011,2012, 2013, 2014, 2015];
+
+    var div = d3.select('body')
+                   .append('div')
+                   .attr('align', 'center')
+
+    div.append('p')
+       .style("font-size", "15px")
+       .style("font-weight", "bold")
+       .text("Visualizing Crimes in New York City")
+
+
+    var select = div.append('select')
+                .attr('class','select')
+
+    var options = select
+                  .selectAll('option')
+                  .data(yr_data)
+                  .enter()
+                  .append('option')
+                  .text(function (d) { return d; });
+
+    var svg = d3.select("body")
+                .append("svg")
+                .attr("width", width)
+                .attr("height", height)
+                .append("g")
+
+    var draw_legend = function(z){
+            var zero = d3.format(".0f")
+
+            var data = [0].concat(z.quantiles()).map((d) => zero(d))
+
+            legend = svg
+                  .selectAll(".legend")
+                  //.data(z.ticks(9).slice(0))
+                  .data(data)
+                  .enter().append("g")
+                  .attr("class", "legend")
+                  .attr("transform", (d, i) => "translate(" + ((width/2) + i * 30) + "," + (height - padding/3) + ")")
+
+             legend.append("rect")
+                  .attr("width", 30)
+                  .attr("height", 20)
+                  .style("fill", z);
+
+             legend.append("text")
+                  .attr("x", 10)
+                  .attr("y", 26)
+                  .attr("dx", "-1em")
+                  .attr("dy", ".35em")
+                  .text(String);
+
+             svg.append("text")
+                  .attr("class", "label")
+                  .attr("x", width/2)
+                  .attr("y", (height - padding/3))
+                  .attr("dy", "-.35em")
+                  .text("No. of Crimes");
+         }
+
+    // Data Ingest
+    d3.csv("heatmap.csv")
+    .then(function(wide_data) {
+
+      //Pivot Dataset
+      var long_data = []
+
+      wide_data
+        .forEach( function(row) {
+            // Loop through all of the columns, and for each column
+            // make a new row
+
+            Object
+            .keys(row)
+            .forEach(function(colname) {
+                if(colname == "Crime Type" || colname == "Year" || colname == "Value") {
+                    return
+                    }
+
+                long_data
+                    .push({"Crime Type": row["Crime Type"],
+                           "Year": +row["Year"],
+                           "Borough": colname,
+                           "Value": +row[colname]
+                           }
+                         )
+             })
+         })
+
+      var nested_data = d3.nest()
+                          .key(function(d) { return d.Year; })
+                          .entries(long_data)
+
+      // Filter Function
+      var filter_by_year = (year) => nested_data.find((d) => d.key == year).values
+
+      // Scales
+      var x = d3.scaleBand().rangeRound([padding, width - padding]),
+          y = d3.scaleBand().rangeRound([height - padding, padding]),
+          z = d3.scaleQuantile()
+                .range(['#fff7f3','#fde0dd','#fcc5c0','#fa9fb5','#f768a1','#dd3497','#ae017e','#7a0177', '#49006a'])
+
+      alpha_sort_x = long_data.sort((a,b) => d3.ascending(a["Crime Type"], b["Crime Type"]))
+      alpha_sort_y = long_data.sort((a,b) => d3.descending(a["Borough"], b["Borough"]))
+
+
+      x.domain(alpha_sort_x.map(d => d["Crime Type"]))
+      y.domain(alpha_sort_y.map(d => d["Borough"]))
+
+      draw_heatmap = function(data) {
+
+        z.domain(d3.range(0, d3.max(data, d => d.Value), d3.max(data, d => d.Value)/9))
+
+        // Display the tiles for each non-zero bucket.
+        svg.selectAll(".tile")
+           .data(data)
+         .enter().append("rect")
+           .attr("class", "tile")
+           .attr("x", function(d) { return x(d["Crime Type"]); })
+           .attr("y", function(d) { return y(d["Borough"]); })
+           .attr("rx", 10)
+           .attr("ry", 10)
+           .attr("width", x.bandwidth(x["Crime Type"]))
+           .attr("height",  y.bandwidth(y["Borough"]))
+           .style("fill", function(d) { return z(d.Value); })
+           .append('title')
+           .text(function(d){return d.Value});
+
+
+         // Legend
+         draw_legend(z)
+
+         // Axis
+         var xAxis = d3.axisBottom(x)
+         var yAxis = d3.axisLeft(y)
+
+          svg.append("g")
+              .attr("class", "axis")
+              .attr("transform", "translate(0," + (height - padding)+ ")")
+              .call(xAxis)
+              .selectAll("text")
+              .attr("transform", "rotate(-90)")
+              .attr("dx", 0 - padding/3)
+              .attr("dy", -6)
+
+
+          svg.append("text")
+              .attr("class", "label")
+              .attr("x", width-padding/4)
+              .attr("y", height - padding*(2/3))
+              .attr("text-anchor", "end")
+              .text("Crime Type")
+
+          svg.append("g")
+              .attr("class", "axis")
+              .attr("transform", "translate("+ padding +", 0)")
+              .call(yAxis)
+            .append("text")
+              .attr("class", "label")
+              .attr('x', 0 - padding/2)
+              .attr("y", padding)
+              .attr("text-anchor", "middle")
+              .text("Borough")
+      }
+
+    draw_heatmap(filter_by_year(2011))
+
+
+
+    var update_heatmap = function(year){
+        var filtered_data = filter_by_year(year)
+
+        z.domain(d3.range(0, d3.max(filtered_data, d => d.Value), d3.max(filtered_data, d => d.Value)/9))
+
+        svg.selectAll(".legend")
+            .remove()
+
+        draw_legend(z)
+
+        var heatmap = svg.selectAll('.tile')
+                         .data(filtered_data)
+                         .transition()
+                         .duration(500)
+                         .style("fill", function(d) { return z(d.Value); })
+
+    }
+
+
+
+    function onchange() {
+        year = d3.select('select').property('value')
+        update_heatmap(year)
+     }
+
+     select.on('change', onchange)
+
+    })
+
+</script>
+</html>
