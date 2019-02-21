@@ -1,0 +1,14 @@
+Ease of development:
+nontechnical developers will be able to pick up tableau the quickest; with minimal coding experience ggplot would be accessible, but the largest learning curve is held by d3. However tableau is much more of black box than either d3 or ggplot and thus lacks flexibility when developing.
+
+Ease to maintain the visualization
+Tableau lacks flexibility for the user and is therefore difficult to maintain. ggplot provides a lot more flexibility; however, R is not ideal for software development. D3, on the other hand, is probably the strongest of the three in terms of maintainability and resilience to hosting platform changes  because most apps are stored in html among other things.
+
+Usability of visualization developed for end users
+D3 and Tableau are both strong in terms of offering usability and interactivity to end users. ggplot visualizations are mostly static and thus are not ideal for usability
+
+Scalability of visualization to “large” datasets
+ggplot is weak in terms of scaling, but combined with a more powerful backend can handle larger datasets. Tableau as well can be quite resilient scaling with the right backend. D3 is the weakest in this respect.
+
+System requirements to run the visualization
+Of course, Tableau requires a license while ggplot and d3 are open source. However, while d3 requires a browser ggplot does not.
