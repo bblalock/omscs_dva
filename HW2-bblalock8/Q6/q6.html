@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+.counties {
+  fill: none;
+}
+
+.states {
+  fill: none;
+  stroke: #fff;
+  stroke-linejoin: round;
+}
+
+.d3-tip {
+  line-height: 1;
+  padding: 12px;
+  background: rgba(43,43,43, 0.8);
+  color: #fff;
+  border-radius: 2px;
+}
+
+</style>
+<svg width="960" height="600"></svg>
+<script src="../lib/d3.v5.min.js"></script>
+<script src="../lib/d3-scale-chromatic.v1.min.js"></script>
+<script src="../lib/topojson.v2.min.js"></script>
+<script src="../lib/d3-tip.min.js"></script>
+<script>
+
+var svg = d3.select("svg"),
+    width = +svg.attr("width"),
+    height = +svg.attr("height");
+
+var unemployment = d3.map();
+var detail = d3.map();
+
+var path = d3.geoPath();
+
+var x = d3.scaleLinear()
+    .domain([1, 10])
+    .rangeRound([300, 500]);
+
+var color = d3.scaleQuantile()
+            //.domain(d3.range(2, 10))
+            .domain([0, 10])
+            .range(d3.schemeGreens[9]);
+
+var g = svg.append("g")
+        .attr("class", "key")
+        .attr("transform", "translate(" + (width-(width/20)) + ",0)");
+
+
+g.selectAll("rect")
+ .data([
+        [1,2],
+        [2,3],
+        [3,4],
+        [4,5],
+        [5,6],
+        [6,7],
+        [7,8],
+        [8,9],
+        [9, 10]
+        ])
+  .enter().append("rect")
+    .attr("x", 0)
+    .attr("y", function(d) { return x(d[0]); })
+    .attr("width", 23)
+    .attr("height", function(d) { console.log(d); return x(d[1]) - x(d[0]); })
+    .attr("fill", function(d) { return color(d[0]); });
+
+g.append("text")
+    .attr("class", "caption")
+    .attr("x", 0)
+    .attr("y", x.range()[0]-6)
+    .attr("fill", "#000")
+    .attr("text-anchor", "middle")
+    .attr("font-weight", "bold")
+    .text("Poverty rate");
+
+g.call(d3.axisLeft(x)
+    .tickSize(13)
+    .tickFormat(function(x, i) { console.log(x); return x + "%"; })
+    .tickValues(d3.range(2, color.domain()[1])) //color.domain()
+    )
+  .select(".domain")
+    .remove();
+
+var promises = [
+  d3.json("us.json"),
+  d3.csv("county_poverty.csv", (data) => unemployment.set(data.CensusId, [data.State, data.County, +data.Poverty])),
+  d3.csv("county_detail.csv", (data) => detail.set(data.CensusId, [+data.TotalPop, +data.IncomePerCap]))
+]
+
+Promise.all(promises).then(ready)
+
+function ready([us]) {
+    console.log(us)
+    console.log(unemployment)
+
+    console.log(topojson.feature(us, us.objects.counties).features)
+
+   /* Initialize tooltip */
+   tip = d3.tip().attr('class', 'd3-tip')
+   .html(function(d) {
+        return_html = "<p><strong>State: </strong>" + unemployment.get(d.id)[0] +
+                      "<p><strong>County: </strong>" + unemployment.get(d.id)[1] +
+                      "<p><strong>Poverty: </strong>" + unemployment.get(d.id)[2] +
+                      "<p><strong>Total Population: </strong>" + detail.get(d.id)[0] +
+                      "<p><strong>Income per capita: </strong>" + detail.get(d.id)[1] +
+                      "</p>";
+
+        return return_html;
+
+   });
+
+  svg.call(tip)
+
+  svg.append("g")
+      .attr("class", "counties")
+    .selectAll("path")
+    .data(topojson.feature(us, us.objects.counties).features)
+    .enter().append("path")
+      .attr("fill", function(d) {return color(d.rate = unemployment.get(d.id)[2]); })
+      .attr("d", path)
+      .on('mouseover', tip.show)
+      .on('mouseout', tip.hide)
+
+  svg.append("path")
+      .datum(topojson.mesh(us, us.objects.states, function(a, b) { return a !== b; }))
+      .attr("class", "states")
+      .attr("d", path);
+}
+
+</script>

@@ -11,14 +11,14 @@
       font: 10px sans-serif;
     }
 
+    .tile {
+      shape-rendering: crispEdges;
+    }
+
     .label {
       font-weight: bold;
       fill: black;
       font-size: 12px;
-    }
-
-    .tile {
-      shape-rendering: crispEdges;
     }
 
     .axis path,
@@ -148,8 +148,8 @@
       var filter_by_year = (year) => nested_data.find((d) => d.key == year).values
 
       // Scales
-      var x = d3.scaleBand().rangeRound([padding, width - padding]),
-          y = d3.scaleBand().rangeRound([height - padding, padding]),
+      var x = d3.scaleBand().rangeRound([padding, width - padding]).paddingInner(0.05),
+          y = d3.scaleBand().rangeRound([height - padding, padding]).paddingInner(0.05),
           z = d3.scaleQuantile()
                 .range(['#fff7f3','#fde0dd','#fcc5c0','#fa9fb5','#f768a1','#dd3497','#ae017e','#7a0177', '#49006a'])
 

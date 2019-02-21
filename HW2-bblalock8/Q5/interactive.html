@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="../lib/d3.v5.min.js"></script>
+<style>
+    .axis {
+        font-size: 13px;
+    }
+
+    .axis path,
+    .axis line {
+      fill: none;
+       stroke: none;
+
+    }
+
+    .label {
+      font-weight: bold;
+      fill: black;
+      font-size: 15px;
+    }
+
+    .axis text {
+      font-family: sans-serif;
+      font-size: 11px;
+    }
+
+    .bar {
+            fill: grey;
+        }
+
+    .line {
+        fill: none;
+        stroke: #1c9099;
+        stroke-width: 3px;
+        }
+
+</style>
+<body>
+</body>
+<script type="text/javascript">
+
+    var data = [{country: 'Bangladesh', population_2012: 105905297, growth: {year_2013:42488 , year_2014:934 , year_2015:52633 , year_2016:112822 , year_2017:160792}},
+        {country: 'Ethopia', population_2012: 75656319, growth: {year_2013:1606010 , year_2014:1606705 , year_2015:1600666 , year_2016:1590077 , year_2017:1580805}},
+        {country: 'Kenya', population_2012: 33007327, growth: {year_2013:705153 , year_2014:703994 , year_2015:699906 , year_2016:694295 , year_2017:687910}},
+        {country: 'Afghanistan', population_2012: 23280573, growth: {year_2013:717151 , year_2014:706082 , year_2015:665025 , year_2016:616262 , year_2017:573643}},
+        {country: 'Morocco', population_2012: 13619520, growth: {year_2013:11862 , year_2014:7997 , year_2015:391 , year_2016:-8820 , year_2017:-17029}}]
+
+    //sort bars based on value
+    data = data.sort(function (a, b) {
+        return d3.descending(a.population_2012, b.population_2012);
+    })
+
+    data = d3
+           .nest()
+           .key((d) => d.country)
+           .rollup((obj) => {
+                obj = obj[0]
+                var start_pop = obj.population_2012
+
+                var year_list = [start_pop,
+                                 obj.growth.year_2013,
+                                 obj.growth.year_2014,
+                                 obj.growth.year_2015,
+                                 obj.growth.year_2016,
+                                 obj.growth.year_2017
+                                 ]
+
+                var cumsum_list = []
+                year_list.reduce((a,b,i) => cumsum_list[i]=a+b, 0)
+
+                var perchg_list = []
+                var prev_year_val;
+                cumsum_list.map((value) => {
+                    if(prev_year_val){
+                        perchg_list.push(((value - prev_year_val) / prev_year_val) * 100 )
+                    }
+
+                    prev_year_val = value
+                })
+
+
+                wide_data = {2013: perchg_list[0],
+                             2014: perchg_list[1],
+                             2015: perchg_list[2],
+                             2016: perchg_list[3],
+                             2017: perchg_list[4],
+                             total: year_list.reduce((a,b) => a+b)
+                             }
+
+                return wide_data
+           })
+           .entries(data)
+
+    long_data=[]
+
+    data
+    .forEach( function(row) {
+        // Loop through all of the columns, and for each column
+        // make a new row
+
+        Object
+        .keys(row.value)
+        .forEach(function(colname) {
+            if(colname == "country" || colname == "percent_change" || colname == "total") {
+                return
+                }
+
+            long_data
+                .push({"country": row.key,
+                       "year": new Date(parseInt(+colname),0),
+                       "percent_change": +row.value[colname],
+                       "total": +row.value.total
+                       }
+                     )
+         })
+     })
+
+
+     data = long_data
+
+    var margin = {
+            top: 15,
+            right: 25,
+            bottom: 15,
+            left: 80
+        };
+
+    var width = 700 - margin.left - margin.right,
+        height = 300 - margin.top - margin.bottom;
+
+    var svg = d3.select("body")
+                .append("svg")
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom)
+
+
+    var x = d3.scaleLinear()
+            .range([margin.left, width])
+            .domain([0, d3.max(data, (d) => d.total)]);
+
+    var y = d3
+            .scaleBand()
+            .rangeRound([0, height])
+            .domain(data
+                    .sort((a,b) => d3.descending(a.total, b.total))
+                    .map((d) => d.country)
+                    )
+            .paddingInner(0.15);
+
+    //make y axis to show bar names
+    var yAxis = d3.axisLeft(y)
+
+     svg.append("g")
+      .attr("class", "axis")
+      .attr("transform", "translate(" + margin.left + "," + 0 + ")")
+      .call(yAxis)
+
+    var bars = svg.selectAll(".bar")
+        .data(data)
+        .enter()
+        .append("g")
+
+    //append rects
+    bars.append("rect")
+        .attr("class", "bar")
+        .attr("rx", 3)
+        .attr("y", (d) => y(d.country))
+        .attr("height", y.bandwidth())
+        .attr("country", (d) => d.country)
+        .attr("x", margin.left)
+        .attr("width", (d) => x(d.total))
+        .on("mouseover", handleMouseOver)
+        .on("mouseout", handleMouseOut);
+
+    var format_num = d3.format(",.0f")
+
+    //add a value label to the right of each bar
+    bars.append("text")
+        .attr("class", "label")
+        .style("fill", "white")
+        .attr("y", (d) => y(d.country) + y.bandwidth() / 2 + 4)
+        .attr("x", (d) => margin.left + 10)
+        .text((d) => format_num(d.total))
+
+
+    // Create Event Handlers for mouse
+    function handleMouseOver(d, e) {
+        d3.select(this).style("fill", "#1c9099")
+
+        var country = d3.select(this).attr("country")
+
+        // Filter Function
+        var dataset = data.filter((d) => d.country == country)
+
+        var margin = {
+            top: 20,
+            right: 20,
+            bottom: 20,
+            left: 50
+        };
+
+        var width = 400 - margin.left - margin.right,
+            height = 300 - margin.top - margin.bottom;
+
+        var x = d3.scaleTime()
+                  .range([margin.left, width])
+                  .domain(d3.extent(dataset, (d) => d.year))
+
+        var y = d3.scaleLinear()
+                  .range([height, margin.top])
+                  .domain([0, d3.max(dataset, (d) => d.percent_change)])
+
+        var xAxis = d3.axisBottom(x).ticks(d3.timeYear.every(1))
+        var yAxis = d3.axisLeft(y)
+
+        var svg = d3.select("body")
+                    .append("svg")
+                    .attr("class", "popup_svg")
+                    .attr("width", width + margin.left + margin.right)
+                    .attr("height", height + margin.top + margin.bottom)
+
+
+       svg.append("g")
+          .attr("class", "axis")
+          .attr("transform", "translate(" + 0 + "," + height + ")")
+          .call(xAxis)
+         .append("text")
+          .attr("class", "label")
+          .attr('x', width + margin.right /2)
+          .attr("y", margin.bottom + 10 )
+          .attr("text-anchor", "middle")
+          .text("Year")
+
+
+
+       svg.append("g")
+          .attr("class", "axis")
+          .attr("transform", "translate(" + margin.left + ",0)")
+          .call(yAxis)
+         .append("text")
+          .attr("class", "label")
+          .attr('x', 0 - margin.left/2)
+          .attr("y", margin.top - 5)
+          .attr("text-anchor", "middle")
+          .text("Pct %")
+
+
+        svg.selectAll('.axis line, .axis path').style("stroke", "black")
+
+        var line = d3.line()
+                     .x((d) => x(d.year))
+                     .y((d) => y(d.percent_change));
+
+        svg.append("path")
+            .datum(dataset)
+            .attr("class", "line")
+            .attr("d", line);
+
+      }
+
+    function handleMouseOut(d, e) {
+        d3.select(this).style("fill", "grey")
+
+        d3.selectAll('.popup_svg').remove()
+      }
+
+</script>
+</html>
