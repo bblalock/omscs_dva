@@ -1,0 +1,7 @@
+trigrams = LOAD 's3://cse6242-2019spring-trigrams-big/*' AS (trigram:chararray, year:int, occurences:int, books:int);
+filtered_trigrams = FILTER trigrams BY occurences >= 400 AND books >= 15;
+grouped_trigrams = GROUP filtered_trigrams BY trigram;
+results = FOREACH grouped_trigrams GENERATE group, SUM(filtered_trigrams.occurences)/SUM(filtered_trigrams.books) as avg_o_per_b;
+ordered_results = ORDER results BY avg_o_per_b DESC;
+limited_results = LIMIT ordered_results 20;
+STORE limited_results INTO 's3://cse6242oan-2019spring-bblalock8/output-big/' USING PigStorage ('\t');
