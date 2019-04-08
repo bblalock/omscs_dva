@@ -11,8 +11,10 @@ def entropy(class_y):
     #
     # Example:
     #    entropy([0,0,0,1,1,1,1,1,1]) = 0.92
-        
-    entropy = 0
+    counts = np.unique(class_y, return_counts=True)[1]
+    norm_counts = counts/counts.sum()
+    entropy = -(norm_counts * np.log2(norm_counts)).sum()
+
     return entropy
 
 
@@ -69,18 +71,27 @@ def partition_classes(X, y, split_attribute, split_val):
         
     X_left = [[1, 'bb', 22],                 y_left = [1,
               [5, 'bb', 32]]                           0]
-              
+
     X_right = [[3, 'aa', 10],                y_right = [1,
                [2, 'cc', 28],                           0,
                [4, 'cc', 32]]                           1]
                
-    ''' 
-    
-    X_left = []
-    X_right = []
-    
-    y_left = []
-    y_right = []
+    '''
+    X = np.array(X)
+    y = np.array(y)
+    if str(split_val).isnumeric():
+        left_cond = np.where(X[:, split_attribute].astype(float) <= float(split_val))
+        right_cond = np.where(X[:, split_attribute].astype(float) > float(split_val))
+
+    else:
+        left_cond = np.where(X[:, split_attribute].astype(str) == split_val)
+        right_cond = np.where(X[:, split_attribute].astype(str) != split_val)
+
+    X_left = X[left_cond]
+    X_right = X[right_cond]
+
+    y_left = y[left_cond]
+    y_right = y[right_cond]
     
     return (X_left, X_right, y_left, y_right)
 
@@ -104,8 +115,13 @@ def information_gain(previous_y, current_y):
     
     info_gain = 0.45915
     """
+    parent_entropy = entropy(previous_y)
+    new_entropy = [entropy(x) for x in current_y]
+    new_proportions = [len(l)/len(previous_y) for l in current_y]
 
-    info_gain = 0
+    conditional_entropy = (new_entropy[0] * new_proportions[0]) + (new_entropy[1] * new_proportions[1])
+
+    info_gain = parent_entropy - conditional_entropy
 
     return info_gain
     

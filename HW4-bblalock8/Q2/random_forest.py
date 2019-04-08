@@ -50,10 +50,12 @@ class RandomForest(object):
         # TODO: Create a sample dataset of size n by sampling with replacement
         #       from the original dataset XX.
         # Note that you would also need to record the corresponding class labels
-        # for the sampled records for training purposes. 
-
-        samples = [] # sampled dataset
-        labels = []  # class labels for the sampled records
+        # for the sampled records for training purposes.
+        XX = np.array(XX)
+        random_indices = np.random.randint(0, len(XX), n)
+        random_sample = XX[random_indices]
+        samples =  random_sample[:,:-1] # sampled dataset
+        labels = random_sample[:,-1] # class labels for the sampled records
         return (samples, labels)
 
 
@@ -68,7 +70,8 @@ class RandomForest(object):
     def fitting(self):
         # TODO: Train `num_trees` decision trees using the bootstraps datasets
         # and labels by calling the learn function from your DecisionTree class.
-        pass      
+        for i in range(self.num_trees):
+            self.decision_trees[i].learn(self.bootstraps_datasets[i], self.bootstraps_labels[i])
 
 
     def voting(self, X):
@@ -79,7 +82,7 @@ class RandomForest(object):
             #   1. Find the set of trees that consider the record as an 
             #      out-of-bag sample.
             #   2. Predict the label using each of the above found trees.
-            #   3. Use majority vote to find the final label for this recod.
+            #   3. Use majority vote to find the final label for this record.
             votes = []
             for i in range(len(self.bootstraps_datasets)):
                 dataset = self.bootstraps_datasets[i]
@@ -94,8 +97,9 @@ class RandomForest(object):
             if len(counts) == 0:
                 # TODO: Special case 
                 #  Handle the case where the record is not an out-of-bag sample
-                #  for any of the trees. 
-                pass
+                #  for any of the trees.
+                pred = np.bincount([tree.classify(record) for tree in self.decision_trees])
+                y = np.append(y, np.argmax(pred))
             else:
                 y = np.append(y, np.argmax(counts))
 
@@ -125,7 +129,7 @@ def main():
 
     # TODO: Initialize according to your implementation
     # VERY IMPORTANT: Minimum forest_size should be 10
-    forest_size = 10
+    forest_size = 30
     
     # Initializing a random forest.
     randomForest = RandomForest(forest_size)
